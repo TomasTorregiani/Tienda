@@ -1,35 +1,38 @@
-import { useEffect, useState } from "react"
-import data from '../data/productos.json'
-import ItemList from "./itemList"
-import { useParams } from "react-router-dom"
+import { useEffect, useState } from "react";
+import ItemList from "./itemList";
+import { useParams } from "react-router-dom";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { dataBase } from "../fireBase/config";
+
 
 const ItemListContainer = () => {
     
     const [products, setProducts] = useState([])
 
-    const { id } = useParams()
-
-    console.log(id);
+    const { category } = useParams()
 
     useEffect(() => {
-        const promise = new Promise((resolve, reject) => {
-            setTimeout(() => {
-                resolve(data)
-                
-            }, 2000)  
-        })
-        promise.then((data) => { 
-            if (id) {
-                const productosFiltrados = data.filter((prod) => prod.category === id)
-                setProducts(productosFiltrados)
-            } else {
-                setProducts(data)
-            }
-    })}, [id])
+            const referenciaProductos = collection(dataBase, "itemCollection")
+            const q = category === undefined ? referenciaProductos : query(referenciaProductos, where("category", "==", category))  
+        getDocs(q)
+            .then(resp => {
+                setProducts(resp.docs.map((doc) => {
+                    return {...doc.data(), id: doc.id}
+                }))                
+            })
+            .catch(error => {
+                console.log("Error al obtener los productos:", error);
+            });
+        
+    }, [category])
 
     return (
+        <>
             <ItemList products = {products}/>
+            
+        </>
+            
     )
 }
 
-export default ItemListContainer
+export default ItemListContainer;
